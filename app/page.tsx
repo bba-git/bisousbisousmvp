@@ -1,10 +1,48 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
+
+interface Service {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  duration: string;
+  professional_id: string;
+}
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'professionnel' | 'client'>('professionnel');
+  const [services, setServices] = useState<Service[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchServices();
+  }, []);
+
+  const fetchServices = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('professional_services')
+        .select('*');
+
+      if (error) throw error;
+      setServices(data || []);
+    } catch (error) {
+      console.error('Error fetching services:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredServices = services.filter(service =>
+    service.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    service.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-100">
@@ -37,6 +75,38 @@ export default function Home() {
           <p className="text-xl text-gray-600 mb-8">
             La plateforme qui connecte les professionnels du bien-être avec leurs clients
           </p>
+        </div>
+
+        {/* Search Section */}
+        <div className="max-w-3xl mx-auto mb-12">
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Rechercher un service..."
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary"
+            />
+            {loading && (
+              <div className="absolute right-3 top-3">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Services Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredServices.map((service) => (
+            <div key={service.id} className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow">
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">{service.title}</h3>
+              <p className="text-gray-600 mb-4">{service.description}</p>
+              <div className="flex justify-between items-center">
+                <span className="text-primary font-medium">{service.price}€</span>
+                <span className="text-gray-500">{service.duration}</span>
+              </div>
+            </div>
+          ))}
         </div>
 
         <div className="max-w-3xl mx-auto mt-12">

@@ -2,9 +2,19 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'professionnel' | 'client'>('professionnel');
+  const [searchQuery, setSearchQuery] = useState('');
+  const router = useRouter();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search-results?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-100">
@@ -37,6 +47,24 @@ export default function Home() {
           <p className="text-xl text-gray-600 mb-8">
             La plateforme qui connecte les professionnels du bien-être avec leurs clients
           </p>
+        </div>
+
+        <div className="max-w-3xl mx-auto mt-8 mb-12">
+          <form onSubmit={handleSearch} className="flex gap-2">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Rechercher un professionnel ou un service..."
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            />
+            <button
+              type="submit"
+              className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-opacity-90"
+            >
+              Rechercher
+            </button>
+          </form>
         </div>
 
         <div className="max-w-3xl mx-auto mt-12">

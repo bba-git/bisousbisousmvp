@@ -16,10 +16,18 @@ interface SearchResult {
   profession: string;
 }
 
+interface ProfessionalResult {
+  id: string;
+  first_name: string;
+  last_name: string;
+  profession: string;
+}
+
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'professionnel' | 'client'>('professionnel');
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [professionalResults, setProfessionalResults] = useState<ProfessionalResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const router = useRouter();
@@ -33,22 +41,32 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Perform search when debounced query changes
+  // Perform both searches
   useEffect(() => {
     if (!debouncedQuery) {
       setResults([]);
+      setProfessionalResults([]);
       return;
     }
 
-    const performSearch = async () => {
+    const performSearches = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`/api/services?q=${encodeURIComponent(debouncedQuery)}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch results');
+        // Perform services search
+        const servicesResponse = await fetch(`/api/services?q=${encodeURIComponent(debouncedQuery)}`);
+        if (!servicesResponse.ok) {
+          throw new Error('Failed to fetch services');
         }
-        const data = await response.json();
-        setResults(data);
+        const servicesData = await servicesResponse.json();
+        setResults(servicesData);
+
+        // Perform professionals search
+        const professionalsResponse = await fetch(`/api/professionals/search?q=${encodeURIComponent(debouncedQuery)}`);
+        if (!professionalsResponse.ok) {
+          throw new Error('Failed to fetch professionals');
+        }
+        const professionalsData = await professionalsResponse.json();
+        setProfessionalResults(professionalsData);
       } catch (err) {
         console.error('Search error:', err);
       } finally {
@@ -56,7 +74,7 @@ export default function Home() {
       }
     };
 
-    performSearch();
+    performSearches();
   }, [debouncedQuery]);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -106,7 +124,7 @@ export default function Home() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Rechercher un professionnel ou un service..."
+                placeholder="Rechercher un service ou un professionnel..."
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
               />
               {isLoading && (
@@ -114,38 +132,68 @@ export default function Home() {
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
                 </div>
               )}
-              {results.length > 0 && (
+              {(results.length > 0 || professionalResults.length > 0) && (
                 <div className="absolute z-10 w-full mt-1 bg-white rounded-lg shadow-lg max-h-64 overflow-y-auto">
-                  {results.map((result) => (
-                    <Link
-                      key={result.id}
-                      href={`/auth/login?redirect=/dashboard/service-request?service_id=${result.id}&professional_id=${result.professional_id}`}
-                      className="block p-2 hover:bg-gray-50 border-b last:border-b-0"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="text-sm font-medium text-gray-900">
-                            {result.title}
-                          </h3>
-                          <p className="mt-0.5 text-xs text-gray-600 line-clamp-1">
-                            {result.description}
-                          </p>
-                          <div className="mt-1 flex items-center space-x-2 text-xs text-gray-500">
-                            <span className="font-medium text-primary">
-                              {result.price.toFixed(2)}€
-                            </span>
-                            <span>•</span>
-                            <span>{result.duration}</span>
-                            <span>•</span>
-                            <span>
-                              {result.first_name} {result.last_name}
-                              {result.profession && ` • ${result.profession}`}
-                            </span>
+                  {results.length > 0 && (
+                    <div className="p-2 border-b">
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase">Services</h3>
+                      {results.map((result) => (
+                        <Link
+                          key={result.id}
+                          href={`/auth/login?redirect=/dashboard/service-request?service_id=${result.id}&professional_id=${result.professional_id}`}
+                          className="block p-2 hover:bg-gray-50 border-b last:border-b-0"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="text-sm font-medium text-gray-900">
+                                {result.title}
+                              </h3>
+                              <p className="mt-0.5 text-xs text-gray-600 line-clamp-1">
+                                {result.description}
+                              </p>
+                              <div className="mt-1 flex items-center space-x-2 text-xs text-gray-500">
+                                <span className="font-medium text-primary">
+                                  {result.price.toFixed(2)}€
+                                </span>
+                                <span>•</span>
+                                <span>{result.duration}</span>
+                                <span>•</span>
+                                <span>
+                                  {result.first_name} {result.last_name}
+                                  {result.profession && ` • ${result.profession}`}
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                  {professionalResults.length > 0 && (
+                    <div className="p-2">
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase">Professionnels</h3>
+                      {professionalResults.map((result) => (
+                        <Link
+                          key={result.id}
+                          href={`/auth/login?redirect=/dashboard/professional-profile/${result.id}`}
+                          className="block p-2 hover:bg-gray-50 border-b last:border-b-0"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="text-sm font-medium text-gray-900">
+                                {result.first_name} {result.last_name}
+                              </h3>
+                              {result.profession && (
+                                <p className="mt-0.5 text-xs text-gray-600">
+                                  {result.profession}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

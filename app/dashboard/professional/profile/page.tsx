@@ -39,6 +39,16 @@ const AVAILABLE_SPECIALTIES = [
   'Autre'
 ];
 
+const DAYS = [
+  { id: 'monday', label: 'Lundi' },
+  { id: 'tuesday', label: 'Mardi' },
+  { id: 'wednesday', label: 'Mercredi' },
+  { id: 'thursday', label: 'Jeudi' },
+  { id: 'friday', label: 'Vendredi' },
+  { id: 'saturday', label: 'Samedi' },
+  { id: 'sunday', label: 'Dimanche' }
+];
+
 export default function ProfessionalProfile() {
   const [profile, setProfile] = useState<ProfessionalProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -359,79 +369,77 @@ export default function ProfessionalProfile() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Disponibilités
-                </label>
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                  {[
-                    { id: 'monday', label: 'Lundi' },
-                    { id: 'tuesday', label: 'Mardi' },
-                    { id: 'wednesday', label: 'Mercredi' },
-                    { id: 'thursday', label: 'Jeudi' },
-                    { id: 'friday', label: 'Vendredi' },
-                    { id: 'saturday', label: 'Samedi' },
-                    { id: 'sunday', label: 'Dimanche' }
-                  ].map(({ id, label }) => (
-                    <div key={id} className="flex items-center">
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold">Disponibilités</h2>
+                <div className="grid grid-cols-2 gap-4">
+                  {DAYS.map(day => (
+                    <div key={day.id} className="flex items-center space-x-2">
                       <input
                         type="checkbox"
-                        id={id}
-                        checked={profile.availability?.[id as keyof typeof profile.availability] || false}
-                        onChange={(e) => setProfile({
-                          ...profile,
-                          availability: {
-                            ...profile.availability,
-                            [id]: e.target.checked
-                          }
-                        })}
-                        className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                        id={day.id}
+                        checked={profile.availability[day.id as keyof typeof profile.availability]}
+                        onChange={(e) => {
+                          setProfile({
+                            ...profile,
+                            availability: {
+                              ...profile.availability,
+                              [day.id]: e.target.checked
+                            }
+                          });
+                        }}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                       />
-                      <label htmlFor={id} className="ml-2 block text-sm text-gray-700">
-                        {label}
+                      <label htmlFor={day.id} className="text-sm font-medium text-gray-700">
+                        {day.label}
                       </label>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="start_time" className="block text-sm font-medium text-gray-700">
-                    Heure de début
-                  </label>
-                  <input
-                    type="time"
-                    id="start_time"
-                    value={profile.working_hours?.start || '09:00'}
-                    onChange={(e) => setProfile({
-                      ...profile,
-                      working_hours: {
-                        ...profile.working_hours,
-                        start: e.target.value
-                      }
-                    })}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="end_time" className="block text-sm font-medium text-gray-700">
-                    Heure de fin
-                  </label>
-                  <input
-                    type="time"
-                    id="end_time"
-                    value={profile.working_hours?.end || '18:00'}
-                    onChange={(e) => setProfile({
-                      ...profile,
-                      working_hours: {
-                        ...profile.working_hours,
-                        end: e.target.value
-                      }
-                    })}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                  />
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold">Horaires de travail</h2>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="start" className="block text-sm font-medium text-gray-700">
+                      Heure de début
+                    </label>
+                    <input
+                      type="time"
+                      id="start"
+                      value={profile.working_hours.start}
+                      onChange={(e) => {
+                        setProfile({
+                          ...profile,
+                          working_hours: {
+                            ...profile.working_hours,
+                            start: e.target.value
+                          }
+                        });
+                      }}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="end" className="block text-sm font-medium text-gray-700">
+                      Heure de fin
+                    </label>
+                    <input
+                      type="time"
+                      id="end"
+                      value={profile.working_hours.end}
+                      onChange={(e) => {
+                        setProfile({
+                          ...profile,
+                          working_hours: {
+                            ...profile.working_hours,
+                            end: e.target.value
+                          }
+                        });
+                      }}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
                 </div>
               </div>
 

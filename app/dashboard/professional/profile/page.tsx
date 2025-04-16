@@ -9,8 +9,8 @@ interface ProfessionalProfile {
   first_name: string;
   last_name: string;
   email: string;
+  profession: string;
   specialties: string[];
-  location: string;
   description: string;
   phone: string;
   availability: {
@@ -26,6 +26,17 @@ interface ProfessionalProfile {
     start: string;
     end: string;
   };
+}
+
+interface Address {
+  id: string;
+  street_address: string;
+  city: string;
+  postal_code: string;
+  country: string;
+  latitude?: number;
+  longitude?: number;
+  is_primary: boolean;
 }
 
 const AVAILABLE_SPECIALTIES = [
@@ -57,6 +68,19 @@ export default function ProfessionalProfile() {
   const [success, setSuccess] = useState('');
   const [newSpecialty, setNewSpecialty] = useState('');
   const router = useRouter();
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const [newAddress, setNewAddress] = useState({
+    street_address: '',
+    city: '',
+    postal_code: '',
+    country: 'France',
+    is_primary: true
+  });
+
+  const [editingAddress, setEditingAddress] = useState<string | null>(null);
+  const [editedAddress, setEditedAddress] = useState<Address | null>(null);
 
   // Add this function to help debug
   const logCurrentUser = async () => {
@@ -74,10 +98,11 @@ export default function ProfessionalProfile() {
   useEffect(() => {
     const checkUser = async () => {
       try {
+        console.log('Starting checkUser...');
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         
         if (authError || !user) {
-          console.log('Auth error or no user:', { authError, user });
+          console.error('Auth error or no user:', { authError, user });
           router.push('/auth/login');
           return;
         }
@@ -97,39 +122,43 @@ export default function ProfessionalProfile() {
         }
 
         if (!profileData) {
-          console.log('No profile found for user:', user.id);
+          console.error('No profile found for user:', user.id);
           setError('Profil non trouvé');
           return;
         }
 
         if (profileData.user_type !== 'professionnel') {
-          console.log('Wrong user type:', profileData.user_type);
+          console.error('Wrong user type:', profileData.user_type);
           router.push('/dashboard');
           return;
         }
 
+        console.log('Profile data:', profileData);
+
         // Initialize default values for availability and working hours if they don't exist
         const initializedProfile: ProfessionalProfile = {
           ...profileData,
-          availability: {
-            monday: profileData.availability?.monday ?? false,
-            tuesday: profileData.availability?.tuesday ?? false,
-            wednesday: profileData.availability?.wednesday ?? false,
-            thursday: profileData.availability?.thursday ?? false,
-            friday: profileData.availability?.friday ?? false,
-            saturday: profileData.availability?.saturday ?? false,
-            sunday: profileData.availability?.sunday ?? false
+          specialties: profileData.specialties || [],
+          availability: profileData.availability || {
+            monday: false,
+            tuesday: false,
+            wednesday: false,
+            thursday: false,
+            friday: false,
+            saturday: false,
+            sunday: false
           },
-          working_hours: {
-            start: profileData.working_hours?.start ?? '09:00',
-            end: profileData.working_hours?.end ?? '18:00'
+          working_hours: profileData.working_hours || {
+            start: '09:00',
+            end: '18:00'
           }
         };
 
+        console.log('Initialized profile:', initializedProfile);
         setProfile(initializedProfile);
       } catch (err) {
         console.error('Error in checkUser:', err);
-        setError('Une erreur est survenue');
+        setError('Une erreur est survenue: ' + (err instanceof Error ? err.message : 'Unknown error'));
       } finally {
         setLoading(false);
       }
@@ -137,6 +166,34 @@ export default function ProfessionalProfile() {
 
     checkUser();
   }, [router]);
+
+  useEffect(() => {
+    fetchAddresses();
+  }, []);
+
+  const fetchAddresses = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push('/auth/login');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('professional_addresses')
+        .select('*')
+        .eq('profile_id', user.id)
+        .order('is_primary', { ascending: false });
+
+      if (error) throw error;
+      setAddresses(data || []);
+    } catch (err) {
+      console.error('Error fetching addresses:', err);
+      setError('Failed to load addresses');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -156,7 +213,7 @@ export default function ProfessionalProfile() {
         id: profile.id,
         first_name: profile.first_name,
         last_name: profile.last_name,
-        location: profile.location,
+        profession: profile.profession,
         description: profile.description,
         phone: profile.phone,
         specialties: profile.specialties,
@@ -169,7 +226,7 @@ export default function ProfessionalProfile() {
         .update({
           first_name: profile.first_name,
           last_name: profile.last_name,
-          location: profile.location,
+          profession: profile.profession,
           description: profile.description,
           phone: profile.phone,
           specialties: profile.specialties,
@@ -211,6 +268,120 @@ export default function ProfessionalProfile() {
       ...profile,
       specialties: profile.specialties.filter(s => s !== specialty)
     });
+  };
+
+  const handleAddAddress = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push('/auth/login');
+        return;
+      }
+
+      // If this is a primary address, unset other primary addresses
+      if (newAddress.is_primary) {
+        await supabase
+          .from('professional_addresses')
+          .update({ is_primary: false })
+          .eq('profile_id', user.id)
+          .eq('is_primary', true);
+      }
+
+      const { error } = await supabase
+        .from('professional_addresses')
+        .insert([{ ...newAddress, profile_id: user.id }]);
+
+      if (error) throw error;
+
+      // Reset form and refresh addresses
+      setNewAddress({
+        street_address: '',
+        city: '',
+        postal_code: '',
+        country: 'France',
+        is_primary: true
+      });
+      fetchAddresses();
+    } catch (err) {
+      console.error('Error adding address:', err);
+      setError('Failed to add address');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteAddress = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this address?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('professional_addresses')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      fetchAddresses();
+    } catch (err) {
+      console.error('Error deleting address:', err);
+      setError('Failed to delete address');
+    }
+  };
+
+  const handleEditAddress = (address: Address) => {
+    setEditingAddress(address.id);
+    setEditedAddress({ ...address });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingAddress(null);
+    setEditedAddress(null);
+  };
+
+  const handleSaveAddress = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editedAddress) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push('/auth/login');
+        return;
+      }
+
+      // If this is a primary address, unset other primary addresses
+      if (editedAddress.is_primary) {
+        await supabase
+          .from('professional_addresses')
+          .update({ is_primary: false })
+          .eq('profile_id', user.id)
+          .eq('is_primary', true)
+          .neq('id', editedAddress.id);
+      }
+
+      const { error } = await supabase
+        .from('professional_addresses')
+        .update({
+          street_address: editedAddress.street_address,
+          city: editedAddress.city,
+          postal_code: editedAddress.postal_code,
+          country: editedAddress.country,
+          is_primary: editedAddress.is_primary
+        })
+        .eq('id', editedAddress.id);
+
+      if (error) throw error;
+
+      setEditingAddress(null);
+      setEditedAddress(null);
+      fetchAddresses();
+    } catch (err) {
+      console.error('Error updating address:', err);
+      setError('Failed to update address');
+    }
   };
 
   if (loading) {
@@ -284,16 +455,15 @@ export default function ProfessionalProfile() {
                 </div>
 
                 <div>
-                  <label htmlFor="location" className="block text-sm font-medium text-gray-700">
-                    Localisation
+                  <label htmlFor="profession" className="block text-sm font-medium text-gray-700">
+                    Profession
                   </label>
                   <input
                     type="text"
-                    id="location"
-                    value={profile.location}
-                    onChange={(e) => setProfile({ ...profile, location: e.target.value })}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                    placeholder="Ville ou code postal"
+                    id="profession"
+                    value={profile.profession || 'Non spécifié'}
+                    readOnly
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm bg-gray-50"
                   />
                 </div>
 
@@ -370,34 +540,6 @@ export default function ProfessionalProfile() {
               </div>
 
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold">Disponibilités</h2>
-                <div className="grid grid-cols-2 gap-4">
-                  {DAYS.map(day => (
-                    <div key={day.id} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id={day.id}
-                        checked={profile.availability[day.id as keyof typeof profile.availability]}
-                        onChange={(e) => {
-                          setProfile({
-                            ...profile,
-                            availability: {
-                              ...profile.availability,
-                              [day.id]: e.target.checked
-                            }
-                          });
-                        }}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      />
-                      <label htmlFor={day.id} className="text-sm font-medium text-gray-700">
-                        {day.label}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-4">
                 <h2 className="text-xl font-semibold">Horaires de travail</h2>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -454,6 +596,228 @@ export default function ProfessionalProfile() {
               </div>
             </form>
           </div>
+        </div>
+      </div>
+
+      <div className="max-w-4xl mx-auto p-6 mt-8">
+        <h1 className="text-2xl font-bold mb-6">Gérer mes adresses</h1>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded mb-4">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleAddAddress} className="space-y-4 mb-8">
+          <div>
+            <label htmlFor="street_address" className="block text-sm font-medium text-gray-700">
+              Adresse
+            </label>
+            <input
+              type="text"
+              id="street_address"
+              value={newAddress.street_address}
+              onChange={(e) => setNewAddress({ ...newAddress, street_address: e.target.value })}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="city" className="block text-sm font-medium text-gray-700">
+                Ville
+              </label>
+              <input
+                type="text"
+                id="city"
+                value={newAddress.city}
+                onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                required
+              />
+            </div>
+
+            <div>
+              <label htmlFor="postal_code" className="block text-sm font-medium text-gray-700">
+                Code postal
+              </label>
+              <input
+                type="text"
+                id="postal_code"
+                value={newAddress.postal_code}
+                onChange={(e) => setNewAddress({ ...newAddress, postal_code: e.target.value })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="country" className="block text-sm font-medium text-gray-700">
+              Pays
+            </label>
+            <input
+              type="text"
+              id="country"
+              value={newAddress.country}
+              onChange={(e) => setNewAddress({ ...newAddress, country: e.target.value })}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+              required
+            />
+          </div>
+
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="is_primary"
+              checked={newAddress.is_primary}
+              onChange={(e) => setNewAddress({ ...newAddress, is_primary: e.target.checked })}
+              className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+            />
+            <label htmlFor="is_primary" className="ml-2 block text-sm text-gray-700">
+              Adresse principale
+            </label>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Ajout en cours...' : 'Ajouter l\'adresse'}
+          </button>
+        </form>
+
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold mb-4">Mes adresses</h2>
+          {addresses.length === 0 ? (
+            <p className="text-gray-500">Aucune adresse enregistrée</p>
+          ) : (
+            addresses.map((address) => (
+              <div key={address.id} className="border rounded-lg p-4">
+                {editingAddress === address.id && editedAddress ? (
+                  <form onSubmit={handleSaveAddress} className="space-y-4">
+                    <div>
+                      <label htmlFor={`street_address_${address.id}`} className="block text-sm font-medium text-gray-700">
+                        Adresse
+                      </label>
+                      <input
+                        type="text"
+                        id={`street_address_${address.id}`}
+                        value={editedAddress.street_address}
+                        onChange={(e) => setEditedAddress({ ...editedAddress, street_address: e.target.value })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                        required
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor={`city_${address.id}`} className="block text-sm font-medium text-gray-700">
+                          Ville
+                        </label>
+                        <input
+                          type="text"
+                          id={`city_${address.id}`}
+                          value={editedAddress.city}
+                          onChange={(e) => setEditedAddress({ ...editedAddress, city: e.target.value })}
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label htmlFor={`postal_code_${address.id}`} className="block text-sm font-medium text-gray-700">
+                          Code postal
+                        </label>
+                        <input
+                          type="text"
+                          id={`postal_code_${address.id}`}
+                          value={editedAddress.postal_code}
+                          onChange={(e) => setEditedAddress({ ...editedAddress, postal_code: e.target.value })}
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label htmlFor={`country_${address.id}`} className="block text-sm font-medium text-gray-700">
+                        Pays
+                      </label>
+                      <input
+                        type="text"
+                        id={`country_${address.id}`}
+                        value={editedAddress.country}
+                        onChange={(e) => setEditedAddress({ ...editedAddress, country: e.target.value })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                        required
+                      />
+                    </div>
+
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id={`is_primary_${address.id}`}
+                        checked={editedAddress.is_primary}
+                        onChange={(e) => setEditedAddress({ ...editedAddress, is_primary: e.target.checked })}
+                        className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                      />
+                      <label htmlFor={`is_primary_${address.id}`} className="ml-2 block text-sm text-gray-700">
+                        Adresse principale
+                      </label>
+                    </div>
+
+                    <div className="flex justify-end space-x-2">
+                      <button
+                        type="button"
+                        onClick={handleCancelEdit}
+                        className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                      >
+                        Annuler
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                      >
+                        Enregistrer
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium">{address.street_address}</p>
+                      <p className="text-gray-600">
+                        {address.postal_code} {address.city}
+                      </p>
+                      <p className="text-gray-600">{address.country}</p>
+                      {address.is_primary && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary text-white mt-2">
+                          Adresse principale
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleEditAddress(address)}
+                        className="text-primary hover:text-primary-dark"
+                      >
+                        Modifier
+                      </button>
+                      <button
+                        onClick={() => handleDeleteAddress(address.id)}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        Supprimer
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

@@ -85,7 +85,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-100">
+    <div className="min-h-screen bg-gray-50">
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
@@ -98,7 +98,7 @@ export default function Home() {
               </Link>
               <Link
                 href="/auth/register"
-                className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-opacity-90"
+                className="bg-midnight-blue text-white px-4 py-2 rounded-lg hover:bg-opacity-90"
               >
                 Inscription
               </Link>
@@ -199,7 +199,7 @@ export default function Home() {
             </div>
             <button
               type="submit"
-              className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-opacity-90"
+              className="bg-midnight-blue text-white px-6 py-2 rounded-lg hover:bg-opacity-90"
             >
               Rechercher
             </button>
@@ -213,7 +213,7 @@ export default function Home() {
                 onClick={() => setActiveTab('professionnel')}
                 className={`flex-1 py-2 px-4 rounded-lg ${
                   activeTab === 'professionnel'
-                    ? 'bg-primary text-white'
+                    ? 'bg-midnight-blue text-white'
                     : 'bg-gray-100 text-gray-600'
                 }`}
               >
@@ -223,7 +223,7 @@ export default function Home() {
                 onClick={() => setActiveTab('client')}
                 className={`flex-1 py-2 px-4 rounded-lg ${
                   activeTab === 'client'
-                    ? 'bg-primary text-white'
+                    ? 'bg-midnight-blue text-white'
                     : 'bg-gray-100 text-gray-600'
                 }`}
               >
@@ -248,7 +248,7 @@ export default function Home() {
                 </ul>
                 <Link
                   href="/auth/register?type=professionnel"
-                  className="inline-block bg-primary text-white px-6 py-3 rounded-lg mt-4 hover:bg-opacity-90"
+                  className="inline-block bg-midnight-blue text-white px-6 py-3 rounded-lg mt-4 hover:bg-opacity-90"
                 >
                   Créer un compte professionnel
                 </Link>
@@ -269,7 +269,7 @@ export default function Home() {
                 </ul>
                 <Link
                   href="/auth/register?type=client"
-                  className="inline-block bg-primary text-white px-6 py-3 rounded-lg mt-4 hover:bg-opacity-90"
+                  className="inline-block bg-midnight-blue text-white px-6 py-3 rounded-lg mt-4 hover:bg-opacity-90"
                 >
                   Créer un compte client
                 </Link>

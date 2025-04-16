@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
+// Function to remove accents from a string
+function removeAccents(str: string): string {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
 export async function GET(request: Request) {
   console.log('🔍 API: Professionals search endpoint called');
   const { searchParams } = new URL(request.url);
@@ -8,8 +13,6 @@ export async function GET(request: Request) {
   console.log('🔍 API: Search query:', searchQuery);
 
   try {
-    console.log('🔍 API: Initializing Supabase query');
-    
     if (!searchQuery) {
       console.log('🔍 API: No search query provided, fetching all professionals');
       const { data: allProfessionals, error: allError } = await supabase
@@ -29,16 +32,20 @@ export async function GET(request: Request) {
       return NextResponse.json(allProfessionals);
     }
 
-    console.log('🔍 API: Executing search with query:', searchQuery);
+    // Normalize the search query
+    const normalizedQuery = searchQuery.toLowerCase();
+    
+    console.log('🔍 API: Executing search with query:', normalizedQuery);
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .or(`last_name.ilike.%${searchQuery}%,last_name.ilike.%${searchQuery.toLowerCase()}%,last_name.ilike.%${searchQuery.toUpperCase()}%`);
+      .ilike('normalized_last_name', `%${normalizedQuery}%`);
 
     console.log('🔍 API: Search query result:', {
       data,
       error,
-      query: searchQuery
+      query: searchQuery,
+      normalizedQuery
     });
 
     if (error) {

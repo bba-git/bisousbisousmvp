@@ -35,6 +35,7 @@ interface ProfessionalProfile {
     country: string;
     is_primary: boolean;
   }[];
+  verified: boolean;
 }
 
 interface Service {
@@ -129,6 +130,7 @@ export default function ProfessionalLandingPage({
             start: '09:00',
             end: '17:00',
           },
+          verified: professionalData.verified || false,
         };
 
         console.log('Professional with defaults:', professionalWithDefaults);
@@ -285,9 +287,19 @@ export default function ProfessionalLandingPage({
             <div className="px-4 py-5 sm:p-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">
-                    {professional.first_name} {professional.last_name}
-                  </h1>
+                  <div className="flex items-center space-x-2">
+                    <h1 className="text-2xl font-bold text-gray-900">
+                      {professional.first_name} {professional.last_name}
+                    </h1>
+                    {professional.verified && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Vérifié
+                      </span>
+                    )}
+                  </div>
                   <p className="mt-1 text-lg text-gray-500">{professional.profession}</p>
                   {professional.addresses && professional.addresses.length > 0 && (
                     <p className="mt-1 text-sm text-gray-500">

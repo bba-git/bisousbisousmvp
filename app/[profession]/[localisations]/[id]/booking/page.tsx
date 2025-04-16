@@ -14,6 +14,7 @@ interface ProfessionalProfile {
   specialties: string[];
   description: string;
   phone: string;
+  verified: boolean;
   availability: {
     monday: boolean;
     tuesday: boolean;

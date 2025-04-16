@@ -19,6 +19,7 @@ export interface Database {
           user_type: 'client' | 'professionnel'
           profession: string | null
           avatar_url: string | null
+          verified: boolean | null
         }
         Insert: {
           id: string
@@ -29,6 +30,7 @@ export interface Database {
           user_type: 'client' | 'professionnel'
           profession?: string | null
           avatar_url?: string | null
+          verified?: boolean | null
         }
         Update: {
           id?: string
@@ -39,6 +41,7 @@ export interface Database {
           user_type?: 'client' | 'professionnel'
           profession?: string | null
           avatar_url?: string | null
+          verified?: boolean | null
         }
       }
       service_requests: {

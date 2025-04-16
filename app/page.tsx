@@ -201,11 +201,15 @@ export default function Home() {
                                   </span>
                                 )}
                               </div>
-                              {result.profession && (
-                                <p className="mt-0.5 text-xs text-gray-600">
-                                  {result.profession}
-                                </p>
-                              )}
+                              <div className="mt-1 flex items-center space-x-2 text-xs text-gray-500">
+                                {result.profession && (
+                                  <>
+                                    <span>{result.profession}</span>
+                                    <span>•</span>
+                                  </>
+                                )}
+                                <span>Éguilles</span>
+                              </div>
                             </div>
                           </div>
                         </Link>

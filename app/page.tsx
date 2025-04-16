@@ -21,6 +21,7 @@ interface ProfessionalResult {
   first_name: string;
   last_name: string;
   profession: string;
+  verified: boolean;
 }
 
 export default function Home() {
@@ -180,9 +181,26 @@ export default function Home() {
                         >
                           <div className="flex justify-between items-start">
                             <div>
-                              <h3 className="text-sm font-medium text-gray-900">
-                                {result.first_name} {result.last_name}
-                              </h3>
+                              <div className="flex items-center space-x-2">
+                                <h3 className="text-sm font-medium text-gray-900">
+                                  {result.first_name} {result.last_name}
+                                </h3>
+                                {result.verified ? (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    <svg className="h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                    </svg>
+                                    Vérifié
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                    <svg className="h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                    </svg>
+                                    Non vérifié
+                                  </span>
+                                )}
+                              </div>
                               {result.profession && (
                                 <p className="mt-0.5 text-xs text-gray-600">
                                   {result.profession}

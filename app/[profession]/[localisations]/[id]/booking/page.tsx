@@ -161,7 +161,7 @@ export default function BookingPage({
         // Fetch professional's services
         try {
           const { data: servicesData, error: servicesError } = await supabase
-            .from('services')
+            .from('professional_services')
             .select('*')
             .eq('professional_id', params.id);
 
@@ -196,11 +196,7 @@ export default function BookingPage({
       setLoading(true);
       setError('');
       
-      // Check authentication status using the API
-      const authResponse = await fetch('/api/auth/check');
-      const authData = await authResponse.json();
-      
-      if (!authData.isAuthenticated) {
+      if (!isAuthenticated) {
         setError('Vous devez être connecté pour prendre un rendez-vous. Connectez-vous');
         // Store the current URL and form data for redirect after login
         const currentUrl = window.location.pathname;
@@ -221,13 +217,19 @@ export default function BookingPage({
         return;
       }
 
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setError('Session expirée. Veuillez vous reconnecter.');
+        return;
+      }
+
       const appointmentDateTime = new Date(`${selectedDate}T${selectedTime}`);
       
       const response = await fetch('/api/appointments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authData.session.access_token}`
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           professional_id: params.id,

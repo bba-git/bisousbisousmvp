@@ -1,13 +1,63 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+
+interface SearchResult {
+  id: string;
+  professional_id: string;
+  title: string;
+  description: string;
+  price: number;
+  duration: string;
+  first_name: string;
+  last_name: string;
+  profession: string;
+}
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'professionnel' | 'client'>('professionnel');
   const [searchQuery, setSearchQuery] = useState('');
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const router = useRouter();
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Perform search when debounced query changes
+  useEffect(() => {
+    if (!debouncedQuery) {
+      setResults([]);
+      return;
+    }
+
+    const performSearch = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`/api/services?q=${encodeURIComponent(debouncedQuery)}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch results');
+        }
+        const data = await response.json();
+        setResults(data);
+      } catch (err) {
+        console.error('Search error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    performSearch();
+  }, [debouncedQuery]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,14 +100,55 @@ export default function Home() {
         </div>
 
         <div className="max-w-3xl mx-auto mt-8 mb-12">
-          <form onSubmit={handleSearch} className="flex gap-2">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Rechercher un professionnel ou un service..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            />
+          <form onSubmit={handleSearch} className="flex gap-2 relative">
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Rechercher un professionnel ou un service..."
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+              {isLoading && (
+                <div className="absolute right-3 top-3">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                </div>
+              )}
+              {results.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                  {results.map((result) => (
+                    <Link
+                      key={result.id}
+                      href={`/auth/login?redirect=/dashboard/service-request?service_id=${result.id}&professional_id=${result.professional_id}`}
+                      className="block p-2 hover:bg-gray-50 border-b last:border-b-0"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-900">
+                            {result.title}
+                          </h3>
+                          <p className="mt-0.5 text-xs text-gray-600 line-clamp-1">
+                            {result.description}
+                          </p>
+                          <div className="mt-1 flex items-center space-x-2 text-xs text-gray-500">
+                            <span className="font-medium text-primary">
+                              {result.price.toFixed(2)}€
+                            </span>
+                            <span>•</span>
+                            <span>{result.duration}</span>
+                            <span>•</span>
+                            <span>
+                              {result.first_name} {result.last_name}
+                              {result.profession && ` • ${result.profession}`}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
             <button
               type="submit"
               className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-opacity-90"

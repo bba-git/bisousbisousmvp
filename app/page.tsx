@@ -133,15 +133,15 @@ export default function Home() {
                 </div>
               )}
               {(results.length > 0 || professionalResults.length > 0) && (
-                <div className="absolute z-10 w-full mt-1 bg-white rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                <div className="absolute z-10 w-full mt-1 bg-white rounded-lg shadow-lg max-h-[500px] overflow-y-auto">
                   {results.length > 0 && (
                     <div className="p-2 border-b">
-                      <h3 className="text-xs font-semibold text-gray-500 uppercase">Services</h3>
-                      {results.map((result) => (
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">Services</h3>
+                      {results.slice(0, 5).map((result) => (
                         <Link
                           key={result.id}
                           href={`/auth/login?redirect=/dashboard/service-request?service_id=${result.id}&professional_id=${result.professional_id}`}
-                          className="block p-2 hover:bg-gray-50 border-b last:border-b-0"
+                          className="block p-3 hover:bg-gray-50 border-b last:border-b-0"
                         >
                           <div className="flex justify-between items-start">
                             <div>
@@ -171,12 +171,12 @@ export default function Home() {
                   )}
                   {professionalResults.length > 0 && (
                     <div className="p-2">
-                      <h3 className="text-xs font-semibold text-gray-500 uppercase">Professionnels</h3>
-                      {professionalResults.map((result) => (
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">Professionnels</h3>
+                      {professionalResults.slice(0, 5).map((result) => (
                         <Link
                           key={result.id}
                           href={`/auth/login?redirect=/dashboard/professional-profile/${result.id}`}
-                          className="block p-2 hover:bg-gray-50 border-b last:border-b-0"
+                          className="block p-3 hover:bg-gray-50 border-b last:border-b-0"
                         >
                           <div className="flex justify-between items-start">
                             <div>

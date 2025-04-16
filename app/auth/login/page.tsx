@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
 export default function Login() {
@@ -11,6 +11,9 @@ export default function Login() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get('redirect');
+  const formData = searchParams.get('formData');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +40,16 @@ export default function Login() {
       }
 
       if (data?.user) {
-        router.push('/dashboard');
+        if (redirect) {
+          const baseUrl = redirect.split('?')[0];
+          const existingParams = new URLSearchParams(redirect.split('?')[1] || '');
+          if (formData) {
+            existingParams.set('formData', formData);
+          }
+          router.push(`${baseUrl}?${existingParams.toString()}`);
+        } else {
+          router.push('/dashboard');
+        }
       }
     } catch (err) {
       console.error('Unexpected error:', err);

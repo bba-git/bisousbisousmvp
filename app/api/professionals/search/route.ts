@@ -1,65 +1,39 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
-// Function to remove accents from a string
-function removeAccents(str: string): string {
-  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+// Function to remove accents and convert to lowercase
+function normalizeString(str: string): string {
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
 }
 
 export async function GET(request: Request) {
-  console.log('🔍 API: Professionals search endpoint called');
-  const { searchParams } = new URL(request.url);
-  const searchQuery = searchParams.get('q');
-  console.log('🔍 API: Search query:', searchQuery);
-
   try {
-    if (!searchQuery) {
-      console.log('🔍 API: No search query provided, fetching all professionals');
-      const { data: allProfessionals, error: allError } = await supabase
-        .from('profiles')
-        .select('*');
-      
-      console.log('🔍 API: All professionals query result:', {
-        data: allProfessionals,
-        error: allError
-      });
+    const { searchParams } = new URL(request.url);
+    const lastName = searchParams.get('q');
 
-      if (allError) {
-        console.error('❌ API: Error fetching all professionals:', allError);
-        return NextResponse.json({ error: allError.message }, { status: 500 });
-      }
-
-      return NextResponse.json(allProfessionals);
+    if (!lastName) {
+      return NextResponse.json({ error: 'Last name is required' }, { status: 400 });
     }
 
-    // Normalize the search query
-    const normalizedQuery = searchQuery.toLowerCase();
-    
-    console.log('🔍 API: Executing search with query:', normalizedQuery);
+    // Normalize the search query to match the normalized_last_name column
+    const normalizedQuery = normalizeString(lastName);
+
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .ilike('normalized_last_name', `%${normalizedQuery}%`);
 
-    console.log('🔍 API: Search query result:', {
-      data,
-      error,
-      query: searchQuery,
-      normalizedQuery
-    });
-
     if (error) {
-      console.error('❌ API: Error in search query:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('Error searching professionals:', error);
+      return NextResponse.json({ error: 'Failed to search professionals' }, { status: 500 });
     }
 
-    console.log('✅ API: Search completed successfully');
     return NextResponse.json(data);
-  } catch (error: any) {
-    console.error('❌ API: Unexpected error:', error);
-    return NextResponse.json(
-      { error: 'An unexpected error occurred' },
-      { status: 500 }
-    );
+  } catch (error) {
+    console.error('Error in professionals search:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 } 

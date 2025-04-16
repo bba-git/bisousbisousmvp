@@ -13,6 +13,9 @@ interface SearchResult {
   duration: string;
   created_at: string;
   updated_at: string;
+  first_name: string;
+  last_name: string;
+  profession: string;
 }
 
 export default function SearchResults() {
@@ -49,7 +52,7 @@ export default function SearchResults() {
   }, [searchParams, router]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-100">
+    <div className="min-h-screen bg-gray-50">
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
@@ -71,50 +74,67 @@ export default function SearchResults() {
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="bg-white shadow rounded-lg p-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-6">
             Résultats de recherche pour "{searchParams.get('q')}"
           </h1>
-        </div>
 
-        {isLoading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-4 text-gray-600">Recherche en cours...</p>
-          </div>
-        ) : error ? (
-          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
-            {error}
-          </div>
-        ) : results.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-600">Aucun résultat trouvé</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {results.map((result) => (
-              <div
-                key={result.id}
-                className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"
-              >
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                  {result.title}
-                </h2>
-                <p className="text-gray-600 mb-4">{result.description}</p>
-                <div className="flex justify-between items-center">
-                  <div className="text-primary font-medium">
-                    {result.price}€
-                  </div>
-                  <div className="text-gray-500">
-                    {result.duration}
+          {/* Error message */}
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-md">
+              {error}
+            </div>
+          )}
+
+          {/* Results */}
+          {isLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+              <p className="mt-4 text-gray-600">Recherche en cours...</p>
+            </div>
+          ) : results.length > 0 ? (
+            <div className="space-y-6">
+              {results.map((result) => (
+                <div key={result.id} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900">
+                        {result.title}
+                      </h3>
+                      <p className="mt-2 text-gray-600">
+                        {result.description}
+                      </p>
+                      <div className="mt-4 flex items-center space-x-4 text-sm text-gray-500">
+                        <span className="font-medium text-primary">
+                          {result.price.toFixed(2)}€
+                        </span>
+                        <span>•</span>
+                        <span>{result.duration}</span>
+                        <span>•</span>
+                        <span>
+                          {result.first_name} {result.last_name}
+                          {result.profession && ` • ${result.profession}`}
+                        </span>
+                      </div>
+                    </div>
+                    <Link
+                      href={`/auth/login?redirect=/dashboard/service-request?service_id=${result.id}&professional_id=${result.professional_id}`}
+                      className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-dark"
+                    >
+                      Réserver
+                    </Link>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </main>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              Aucun résultat trouvé pour "{searchParams.get('q')}"
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 } 

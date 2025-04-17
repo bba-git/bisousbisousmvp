@@ -1,0 +1,8 @@
+🔍 API: Starting profile deletion process
+🔍 API: Current user: 25551ead-fe6a-446f-93a0-061630b48232
+🔍 API: Attempting to delete professional addresses
+✅ API: Professional addresses deleted successfully
+🔍 API: Deleting profile for user: 25551ead-fe6a-446f-93a0-061630b48232
+✅ API: Profile deleted successfully
+🔍 API: Signing out user
+✅ API: User signed out successfully

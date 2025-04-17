@@ -176,7 +176,7 @@ export default function Home() {
                       {professionalResults.slice(0, 5).map((result) => (
                         <Link
                           key={result.id}
-                          href={`/${(result.profession || 'professionnel').toLowerCase()}/eguilles/${result.id}`}
+                          href={`/${(result.profession || 'autre').toLowerCase()}/eguilles/${result.id}`}
                           className="block p-3 hover:bg-gray-50 border-b last:border-b-0"
                         >
                           <div className="flex justify-between items-start">

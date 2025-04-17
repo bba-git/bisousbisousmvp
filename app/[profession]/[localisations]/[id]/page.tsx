@@ -70,7 +70,12 @@ export default function ProfessionalLandingPage({
         
         const { data: professionalData, error: professionalError } = await supabase
           .from('profiles')
-          .select('*')
+          .select(`
+            *,
+            professions:profession_id (
+              name
+            )
+          `)
           .eq('id', params.id)
           .single();
 
@@ -88,10 +93,10 @@ export default function ProfessionalLandingPage({
         }
 
         // Verify that the professional matches the URL parameters
-        if (!professionalData.profession || professionalData.profession.toLowerCase() !== params.profession.toLowerCase()) {
+        if (!professionalData.professions?.name || professionalData.professions.name.toLowerCase() !== params.profession.toLowerCase()) {
           console.error('Profession mismatch or missing:', {
             expected: params.profession,
-            actual: professionalData.profession,
+            actual: professionalData.professions?.name,
             professionalData
           });
           setError('Professionnel non trouvé');
@@ -117,6 +122,7 @@ export default function ProfessionalLandingPage({
         // Ensure availability and working_hours exist
         const professionalWithDefaults = {
           ...professionalData,
+          profession: professionalData.professions?.name || 'Autre',
           addresses: addressesData,
           availability: professionalData.availability || {
             monday: false,

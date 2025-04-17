@@ -23,7 +23,12 @@ export async function GET(request: Request) {
 
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select(`
+        *,
+        professions:profession_id (
+          name
+        )
+      `)
       .ilike('normalized_last_name', `%${normalizedQuery}%`);
 
     if (error) {
@@ -31,7 +36,13 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Failed to search professionals' }, { status: 500 });
     }
 
-    return NextResponse.json(data);
+    // Transform the data to include profession name from the joined table
+    const transformedData = data.map(profile => ({
+      ...profile,
+      profession: profile.professions?.name || 'Autre'
+    }));
+
+    return NextResponse.json(transformedData);
   } catch (error) {
     console.error('Error in professionals search:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

@@ -94,7 +94,12 @@ export default function BookingPage({
         
         const { data: professionalData, error: professionalError } = await supabase
           .from('profiles')
-          .select('*')
+          .select(`
+            *,
+            professions:profession_id (
+              name
+            )
+          `)
           .eq('id', params.id)
           .single();
 
@@ -112,10 +117,10 @@ export default function BookingPage({
         }
 
         // Verify that the professional matches the URL parameters
-        if (professionalData.profession.toLowerCase() !== params.profession.toLowerCase()) {
+        if (professionalData.professions?.name.toLowerCase() !== params.profession.toLowerCase()) {
           console.error('Profession mismatch:', {
             expected: params.profession,
-            actual: professionalData.profession
+            actual: professionalData.professions?.name
           });
           setError('Professionnel non trouvé');
           return;
@@ -140,6 +145,7 @@ export default function BookingPage({
         // Ensure availability and working_hours exist
         const professionalWithDefaults = {
           ...professionalData,
+          profession: professionalData.professions?.name || 'Autre',
           addresses: addressesData,
           availability: professionalData.availability || {
             monday: false,
@@ -154,6 +160,7 @@ export default function BookingPage({
             start: '09:00',
             end: '17:00',
           },
+          verified: professionalData.verified || false,
         };
 
         console.log('Professional with defaults:', professionalWithDefaults);

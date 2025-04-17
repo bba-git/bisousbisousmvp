@@ -20,6 +20,7 @@
     "@supabase/supabase-js": "^2.39.3",
     "@swc/helpers": "^0.5.17",
     "autoprefixer": "^10.0.1",
+    "googleapis": "^148.0.0",
     "lucide-react": "^0.488.0",
     "next": "14.1.0",
     "next-auth": "^4.24.5",

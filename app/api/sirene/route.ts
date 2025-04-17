@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
+const SIRENE_API_KEY = process.env.SIRENE_API_KEY;
 const SIRENE_API_URL = 'https://api.insee.fr/api-sirene/3.11/siret';
-const SIRENE_API_KEY = 'ef79b386-e02a-429e-b9b3-86e02ab29e4d';
 
 console.log('SIRENE_API_KEY:', SIRENE_API_KEY ? 'Configured' : 'Not configured');
 
@@ -12,16 +12,11 @@ function isValidSiret(siret: string): boolean {
 }
 
 export async function GET(request: Request) {
-  console.log('SIRENE_API_KEY:', SIRENE_API_KEY);
   const { searchParams } = new URL(request.url);
   const siret = searchParams.get('siret');
-  console.log('SIRET:', siret);
 
   if (!siret) {
-    return NextResponse.json(
-      { error: 'SIRET number is required' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'SIRET number is required' }, { status: 400 });
   }
 
   if (!isValidSiret(siret)) {
@@ -32,16 +27,16 @@ export async function GET(request: Request) {
   }
 
   if (!SIRENE_API_KEY) {
-    return NextResponse.json(
-      { error: 'SIRENE API key is not configured' },
-      { status: 500 }
-    );
+    console.error('SIRENE_API_KEY is not configured');
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
   }
 
   try {
-    console.log('Making request to:', `${SIRENE_API_URL}/${siret}`);
+    console.log('SIRENE API route called');
+    console.log('SIRET:', siret);
+    console.log('Making request to SIRENE API:', `${SIRENE_API_URL}/${siret}`);
+
     const response = await fetch(`${SIRENE_API_URL}/${siret}`, {
-      method: 'GET',
       headers: {
         'X-INSEE-Api-Key-Integration': SIRENE_API_KEY,
         'accept': 'application/json'
@@ -49,18 +44,12 @@ export async function GET(request: Request) {
     });
 
     console.log('Response status:', response.status);
-    const responseText = await response.text();
-    console.log('Response body:', responseText);
 
     if (!response.ok) {
-      return NextResponse.json(
-        { error: 'Failed to fetch SIRENE data', details: responseText },
-        { status: response.status }
-      );
+      return NextResponse.json({ error: 'Failed to fetch SIRENE data' }, { status: response.status });
     }
 
-    const data = JSON.parse(responseText);
-    console.log('SIRENE API response:', data);
+    const data = await response.json();
     
     // Extract relevant information with null checks
     const establishment = data.etablissement;
@@ -68,7 +57,7 @@ export async function GET(request: Request) {
     
     if (!establishment || !company) {
       return NextResponse.json(
-        { error: 'Invalid SIRENE data structure', details: data },
+        { error: 'Invalid SIRENE data structure' },
         { status: 500 }
       );
     }
@@ -92,9 +81,6 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error('SIRENE API error:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch SIRENE data', details: error },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch SIRENE data' }, { status: 500 });
   }
 } 

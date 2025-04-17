@@ -35,6 +35,7 @@ export default function Register() {
     }
 
     try {
+      console.log('Attempting signup with email:', formData.email);
       // 1. Sign up the user with metadata and correct redirect URL
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
@@ -49,6 +50,18 @@ export default function Register() {
             profession: userType === 'professionnel' ? formData.profession : null,
           },
         },
+      });
+
+      console.log('Signup response:', {
+        authData,
+        authError,
+        emailSent: authData?.user?.identities?.[0]?.identity_data?.email_verified === false,
+        email: formData.email,
+        redirectUrl: `${window.location.origin}/auth/callback`,
+        userMetadata: authData?.user?.user_metadata,
+        identities: authData?.user?.identities,
+        emailVerified: authData?.user?.email_verified,
+        confirmationSent: authData?.user?.confirmation_sent_at
       });
 
       if (authError) {
@@ -73,6 +86,31 @@ export default function Register() {
       }
 
       // 2. Create profile directly
+      let professionId = null;
+      if (userType === 'professionnel') {
+        const { data: professionData, error: professionError } = await supabase
+          .from('professions')
+          .select('id')
+          .eq('name', formData.profession)
+          .single();
+
+        if (professionError) {
+          console.error('Profession lookup error:', professionError);
+          setError('Erreur lors de la sélection de la profession');
+          setIsLoading(false);
+          return;
+        }
+
+        if (!professionData) {
+          console.error('Profession not found:', formData.profession);
+          setError('Profession non trouvée');
+          setIsLoading(false);
+          return;
+        }
+
+        professionId = professionData.id;
+      }
+
       const { error: profileError } = await supabase
         .from('profiles')
         .insert({
@@ -81,7 +119,9 @@ export default function Register() {
           last_name: formData.lastName,
           phone: formData.phone,
           user_type: userType as 'client' | 'professionnel',
-          profession: userType === 'professionnel' ? formData.profession : null,
+          profession_id: professionId,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         });
 
       if (profileError) {

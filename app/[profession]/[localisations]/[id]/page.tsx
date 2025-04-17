@@ -88,10 +88,11 @@ export default function ProfessionalLandingPage({
         }
 
         // Verify that the professional matches the URL parameters
-        if (professionalData.profession.toLowerCase() !== params.profession.toLowerCase()) {
-          console.error('Profession mismatch:', {
+        if (!professionalData.profession || professionalData.profession.toLowerCase() !== params.profession.toLowerCase()) {
+          console.error('Profession mismatch or missing:', {
             expected: params.profession,
-            actual: professionalData.profession
+            actual: professionalData.profession,
+            professionalData
           });
           setError('Professionnel non trouvé');
           return;

@@ -9,6 +9,28 @@ export default function SelectType() {
   const [error, setError] = useState('');
   const router = useRouter();
 
+  const validateGoogleCalendarToken = async (accessToken: string) => {
+    try {
+      const response = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Accept': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Google Calendar API validation failed:', errorData);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error validating Google Calendar token:', error);
+      return false;
+    }
+  };
+
   const handleTypeSelection = async (isProfessional: boolean) => {
     try {
       setIsLoading(true);
@@ -75,7 +97,14 @@ export default function SelectType() {
             last_name: session.user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || '',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-            verified: false
+            verified: false,
+            profession_id: isProfessional ? (
+              await supabase
+                .from('professions')
+                .select('id')
+                .eq('name', 'Autre')
+                .single()
+            ).data?.id : null
           })
           .select()
           .single();
@@ -86,25 +115,10 @@ export default function SelectType() {
         }
       }
 
-      // If professional, store calendar credentials
-      if (isProfessional && session.provider_token && session.provider_refresh_token) {
-        console.log('Storing calendar credentials for professional');
-        const response = await fetch('/api/professional/calendar', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            access_token: session.provider_token,
-            refresh_token: session.provider_refresh_token,
-            expires_in: 3600,
-          }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error('Failed to store calendar credentials:', errorData);
-        }
+      // For professionals, redirect to profile setup
+      if (isProfessional) {
+        router.push('/dashboard/professional/profile');
+        return;
       }
 
       router.push('/dashboard');

@@ -47,6 +47,24 @@ async function handleDelete() {
       console.log('⚠️ API: Could not delete addresses:', error);
     }
 
+    // Try to delete Google Calendar credentials if they exist
+    try {
+      console.log('🔍 API: Attempting to delete Google Calendar credentials');
+      const { error: calendarError } = await supabase
+        .from('google_calendar_credentials')
+        .delete()
+        .eq('professional_id', user.id);
+
+      if (calendarError) {
+        console.log('⚠️ API: No calendar credentials found or table does not exist:', calendarError.message);
+      } else {
+        console.log('✅ API: Google Calendar credentials deleted successfully');
+      }
+    } catch (error) {
+      // Don't throw error if calendar credentials deletion fails
+      console.log('⚠️ API: Could not delete calendar credentials:', error);
+    }
+
     // Delete the profile
     console.log('🔍 API: Deleting profile for user:', user.id);
     const { error: profileError } = await supabase

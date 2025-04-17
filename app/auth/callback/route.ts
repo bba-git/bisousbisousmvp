@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 
       console.log('Session created successfully for user:', session.user.id);
 
-      // Check if user already has a profile
+      // First profile check
       const { data: existingProfile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -37,9 +37,26 @@ export async function GET(request: Request) {
         return NextResponse.redirect(new URL('/auth/login?error=profile_check_failed', requestUrl.origin));
       }
 
+      // If no profile found, wait a moment and check again to avoid race conditions
       if (!existingProfile) {
-        console.log('No existing profile found, redirecting to type selection');
-        return NextResponse.redirect(new URL('/auth/select-type', requestUrl.origin));
+        console.log('No profile found on first check, waiting and checking again...');
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+        
+        const { data: doubleCheckProfile, error: doubleCheckError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        if (doubleCheckError && doubleCheckError.code !== 'PGRST116') {
+          console.error('Error in double-check profile:', doubleCheckError);
+          return NextResponse.redirect(new URL('/auth/login?error=profile_check_failed', requestUrl.origin));
+        }
+
+        if (!doubleCheckProfile) {
+          console.log('No existing profile found after double-check, redirecting to type selection');
+          return NextResponse.redirect(new URL('/auth/select-type', requestUrl.origin));
+        }
       }
 
       console.log('Existing profile found, redirecting to dashboard');

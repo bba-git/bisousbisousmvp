@@ -16,6 +16,15 @@ interface Professional {
   rating?: number;
 }
 
+interface ProfessionalResult {
+  id: string;
+  first_name: string;
+  last_name: string;
+  profession: string;
+  description: string;
+  phone: string;
+}
+
 export default function ProfessionalSearch() {
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [loading, setLoading] = useState(true);
@@ -171,49 +180,15 @@ export default function ProfessionalSearch() {
                 {professionals.map((professional) => (
                   <div
                     key={professional.id}
-                    className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                    className="bg-white rounded-lg shadow-md p-4 mb-4"
                   >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="text-lg font-medium text-gray-900">
-                          {professional.first_name} {professional.last_name}
-                        </h4>
-                        <p className="text-sm text-gray-500 mt-1">
-                          {professional.location}
-                        </p>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {professional.specialties?.map((specialty) => (
-                            <span
-                              key={specialty}
-                              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                            >
-                              {specialty}
-                            </span>
-                          ))}
-                        </div>
-                        {professional.description && (
-                          <p className="mt-2 text-sm text-gray-600">
-                            {professional.description}
-                          </p>
-                        )}
-                      </div>
-                      {professional.rating && (
-                        <div className="flex items-center">
-                          <span className="text-yellow-400">★</span>
-                          <span className="ml-1 text-sm text-gray-500">
-                            {professional.rating.toFixed(1)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="mt-4">
-                      <button
-                        onClick={() => router.push(`/dashboard/service-request?professional_id=${professional.id}`)}
-                        className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-                      >
-                        Faire une demande
-                      </button>
-                    </div>
+                    <h3 className="text-lg font-semibold">{professional.first_name} {professional.last_name}</h3>
+                    <p className="text-gray-600">{professional.location}</p>
+                    {professional.description && (
+                      <p className="mt-2 text-sm text-gray-600">
+                        {professional.description}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>

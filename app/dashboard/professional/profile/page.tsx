@@ -9,23 +9,9 @@ interface ProfessionalProfile {
   first_name: string;
   last_name: string;
   email: string;
-  profession: string;
-  specialties: string[];
+  profession_id: string;
   description: string;
   phone: string;
-  availability: {
-    monday: boolean;
-    tuesday: boolean;
-    wednesday: boolean;
-    thursday: boolean;
-    friday: boolean;
-    saturday: boolean;
-    sunday: boolean;
-  };
-  working_hours: {
-    start: string;
-    end: string;
-  };
 }
 
 interface Address {
@@ -38,17 +24,6 @@ interface Address {
   longitude?: number;
   is_primary: boolean;
 }
-
-const AVAILABLE_SPECIALTIES = [
-  'Coiffure',
-  'Manucure',
-  'Maquillage',
-  'Massage',
-  'Épilation',
-  'Soins du visage',
-  'Soins du corps',
-  'Autre'
-];
 
 const DAYS = [
   { id: 'monday', label: 'Lundi' },
@@ -66,7 +41,6 @@ export default function ProfessionalProfile() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [newSpecialty, setNewSpecialty] = useState('');
   const router = useRouter();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -83,6 +57,8 @@ export default function ProfessionalProfile() {
 
   const [editingAddress, setEditingAddress] = useState<string | null>(null);
   const [editedAddress, setEditedAddress] = useState<Address | null>(null);
+
+  const [professions, setProfessions] = useState<{ id: string; name: string }[]>([]);
 
   // Add this function to help debug
   const logCurrentUser = async () => {
@@ -137,23 +113,11 @@ export default function ProfessionalProfile() {
 
         console.log('Profile data:', profileData);
 
-        // Initialize default values for availability and working hours if they don't exist
+        // Initialize default values for working hours if they don't exist
         const initializedProfile: ProfessionalProfile = {
           ...profileData,
-          specialties: profileData.specialties || [],
-          availability: profileData.availability || {
-            monday: false,
-            tuesday: false,
-            wednesday: false,
-            thursday: false,
-            friday: false,
-            saturday: false,
-            sunday: false
-          },
-          working_hours: profileData.working_hours || {
-            start: '09:00',
-            end: '18:00'
-          }
+          description: profileData.description || '',
+          phone: profileData.phone || ''
         };
 
         console.log('Initialized profile:', initializedProfile);
@@ -171,6 +135,24 @@ export default function ProfessionalProfile() {
 
   useEffect(() => {
     fetchAddresses();
+  }, []);
+
+  useEffect(() => {
+    const fetchProfessions = async () => {
+      const { data, error } = await supabase
+        .from('professions')
+        .select('id, name')
+        .order('name');
+
+      if (error) {
+        console.error('Error fetching professions:', error);
+        return;
+      }
+
+      setProfessions(data || []);
+    };
+
+    fetchProfessions();
   }, []);
 
   const fetchAddresses = async () => {
@@ -199,77 +181,66 @@ export default function ProfessionalProfile() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted');
-    
-    if (!profile) {
-      console.log('No profile data available');
-      return;
-    }
+    setIsLoading(true);
+    setError('');
 
     try {
-      setSaving(true);
-      setError('');
-      setSuccess('');
+      // Validate required fields
+      console.log('Validating profile:', {
+        first_name: profile?.first_name,
+        last_name: profile?.last_name,
+        profession_id: profile?.profession_id
+      });
+
+      if (!profile || !profile.first_name.trim() || !profile.last_name.trim() || !profile.profession_id) {
+        console.log('Validation failed:', {
+          hasProfile: !!profile,
+          hasFirstName: !!profile?.first_name?.trim(),
+          hasLastName: !!profile?.last_name?.trim(),
+          hasProfessionId: !!profile?.profession_id
+        });
+        setError('Tous les champs sont obligatoires');
+        return;
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push('/auth/login');
+        return;
+      }
+
+      const updateData = {
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        profession_id: profile.profession_id,
+        description: profile.description,
+        phone: profile.phone,
+        updated_at: new Date().toISOString()
+      };
 
       console.log('Updating profile with data:', {
         id: profile.id,
-        first_name: profile.first_name,
-        last_name: profile.last_name,
-        profession: profile.profession,
-        description: profile.description,
-        phone: profile.phone,
-        specialties: profile.specialties,
-        availability: profile.availability,
-        working_hours: profile.working_hours,
+        updateData
       });
 
       const { data, error: updateError } = await supabase
         .from('profiles')
-        .update({
-          first_name: profile.first_name,
-          last_name: profile.last_name,
-          profession: profile.profession,
-          description: profile.description,
-          phone: profile.phone,
-          specialties: profile.specialties,
-          availability: profile.availability,
-          working_hours: profile.working_hours,
-        })
+        .update(updateData)
         .eq('id', profile.id)
         .select();
 
       if (updateError) {
-        console.error('Update error details:', updateError);
+        console.error('Supabase update error:', updateError);
         throw updateError;
       }
 
-      console.log('Update successful, returned data:', data);
-      setSuccess('Profil mis à jour avec succès');
-    } catch (err: any) {
+      router.push('/dashboard');
+    } catch (err) {
       console.error('Error updating profile:', err);
-      setError('Erreur lors de la mise à jour du profil: ' + err.message);
+      setError('Une erreur est survenue lors de la mise à jour du profil');
     } finally {
-      setSaving(false);
+      setIsLoading(false);
     }
-  };
-
-  const addSpecialty = () => {
-    if (!newSpecialty || !profile) return;
-    if (profile.specialties.includes(newSpecialty)) return;
-
-    setProfile({
-      ...profile,
-      specialties: [...profile.specialties, newSpecialty]
-    });
-    setNewSpecialty('');
-  };
-
-  const removeSpecialty = (specialty: string) => {
-    if (!profile) return;
-    setProfile({
-      ...profile,
-      specialties: profile.specialties.filter(s => s !== specialty)
-    });
   };
 
   const handleAddAddress = async (e: React.FormEvent) => {
@@ -507,7 +478,7 @@ export default function ProfessionalProfile() {
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div>
                   <label htmlFor="first_name" className="block text-sm font-medium text-gray-700">
-                    Prénom
+                    Prénom *
                   </label>
                   <input
                     type="text"
@@ -515,12 +486,13 @@ export default function ProfessionalProfile() {
                     value={profile.first_name}
                     onChange={(e) => setProfile({ ...profile, first_name: e.target.value })}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                    required
                   />
                 </div>
 
                 <div>
                   <label htmlFor="last_name" className="block text-sm font-medium text-gray-700">
-                    Nom
+                    Nom *
                   </label>
                   <input
                     type="text"
@@ -528,20 +500,28 @@ export default function ProfessionalProfile() {
                     value={profile.last_name}
                     onChange={(e) => setProfile({ ...profile, last_name: e.target.value })}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                    required
                   />
                 </div>
 
                 <div>
                   <label htmlFor="profession" className="block text-sm font-medium text-gray-700">
-                    Profession
+                    Profession *
                   </label>
-                  <input
-                    type="text"
+                  <select
                     id="profession"
-                    value={profile.profession || 'Non spécifié'}
-                    readOnly
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm bg-gray-50"
-                  />
+                    value={profile.profession_id || ''}
+                    onChange={(e) => setProfile({ ...profile, profession_id: e.target.value })}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                    required
+                  >
+                    <option value="">Sélectionnez une profession</option>
+                    {professions.map((profession) => (
+                      <option key={profession.id} value={profession.id}>
+                        {profession.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
@@ -572,103 +552,13 @@ export default function ProfessionalProfile() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Spécialités
-                </label>
-                <div className="flex gap-2 mb-2">
-                  <select
-                    value={newSpecialty}
-                    onChange={(e) => setNewSpecialty(e.target.value)}
-                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                  >
-                    <option value="">Sélectionnez une spécialité</option>
-                    {AVAILABLE_SPECIALTIES.map((specialty) => (
-                      <option key={specialty} value={specialty}>
-                        {specialty}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={addSpecialty}
-                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-                  >
-                    Ajouter
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {profile.specialties.map((specialty) => (
-                    <span
-                      key={specialty}
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                    >
-                      {specialty}
-                      <button
-                        type="button"
-                        onClick={() => removeSpecialty(specialty)}
-                        className="ml-1 text-blue-600 hover:text-blue-800"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <h2 className="text-xl font-semibold">Horaires de travail</h2>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="start" className="block text-sm font-medium text-gray-700">
-                      Heure de début
-                    </label>
-                    <input
-                      type="time"
-                      id="start"
-                      value={profile.working_hours.start}
-                      onChange={(e) => {
-                        setProfile({
-                          ...profile,
-                          working_hours: {
-                            ...profile.working_hours,
-                            start: e.target.value
-                          }
-                        });
-                      }}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="end" className="block text-sm font-medium text-gray-700">
-                      Heure de fin
-                    </label>
-                    <input
-                      type="time"
-                      id="end"
-                      value={profile.working_hours.end}
-                      onChange={(e) => {
-                        setProfile({
-                          ...profile,
-                          working_hours: {
-                            ...profile.working_hours,
-                            end: e.target.value
-                          }
-                        });
-                      }}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-              </div>
-
               <div className="flex justify-end">
                 <button
                   type="submit"
-                  disabled={saving}
+                  disabled={isLoading}
                   className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50"
                 >
-                  {saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
+                  {isLoading ? 'Enregistrement...' : 'Enregistrer les modifications'}
                 </button>
               </div>
             </form>

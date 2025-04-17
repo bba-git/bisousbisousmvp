@@ -33,7 +33,8 @@ export async function GET(request: Request) {
     const { data, error } = await supabase
       .from('professional_services')
       .select('*')
-      .or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
+      .or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`)
+      .order('title', { ascending: true });
 
     console.log('🔍 API: Search query result:', {
       data,

@@ -66,12 +66,13 @@ export default function ProfessionalLandingPage({
       try {
         setLoading(true);
         console.log('Fetching professional with ID:', params.id);
-        console.log('Expected profession:', params.profession);
         
+        // First, get the professional's data
         const { data: professionalData, error: professionalError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', params.id)
+          .eq('user_type', 'professionnel')
           .single();
 
         if (professionalError) {
@@ -79,24 +80,33 @@ export default function ProfessionalLandingPage({
           throw professionalError;
         }
 
-        console.log('Fetched professional data:', professionalData);
-
         if (!professionalData) {
           console.error('No professional found with ID:', params.id);
           setError('Professionnel non trouvé');
           return;
         }
 
-        // Verify that the professional matches the URL parameters
-        if (!professionalData.profession || professionalData.profession.toLowerCase() !== params.profession.toLowerCase()) {
-          console.error('Profession mismatch or missing:', {
-            expected: params.profession,
-            actual: professionalData.profession,
-            professionalData
-          });
-          setError('Professionnel non trouvé');
-          return;
+        // If we have a profession_id, fetch the profession name
+        if (professionalData.profession_id) {
+          const { data: professionData, error: professionError } = await supabase
+            .from('professions')
+            .select('name')
+            .eq('id', professionalData.profession_id)
+            .single();
+
+          if (professionError) {
+            console.error('Error fetching profession:', professionError);
+            throw professionError;
+          }
+
+          if (professionData && professionData.name.toLowerCase() !== params.profession) {
+            // Redirect to the correct URL with the profession name
+            router.replace(`/${professionData.name.toLowerCase()}/${params.localisations}/${params.id}`);
+            return;
+          }
         }
+
+        console.log('Fetched professional data:', professionalData);
 
         // Fetch addresses separately
         let addressesData: { city: string }[] = [];
@@ -146,7 +156,6 @@ export default function ProfessionalLandingPage({
 
           if (servicesError) {
             console.error('Error fetching services:', servicesError);
-            // If the services table doesn't exist, just set an empty array
             setServices([]);
           } else {
             console.log('Fetched services:', servicesData);
@@ -154,7 +163,6 @@ export default function ProfessionalLandingPage({
           }
         } catch (servicesErr) {
           console.error('Error fetching services:', servicesErr);
-          // If there's any error with services, just set an empty array
           setServices([]);
         }
       } catch (err) {
@@ -166,7 +174,7 @@ export default function ProfessionalLandingPage({
     };
 
     fetchProfessional();
-  }, [params.id, params.profession]);
+  }, [params.id, params.profession, params.localisations, router]);
 
   if (loading) {
     return (

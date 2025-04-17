@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 
 interface SearchResult {
@@ -15,7 +14,6 @@ interface SearchResult {
   first_name: string;
   last_name: string;
   profession: string;
-  rank: number;
 }
 
 export default function ServiceSearch() {
@@ -46,12 +44,12 @@ export default function ServiceSearch() {
       setError('');
 
       try {
-        const { data, error } = await supabase
-          .rpc('search_services', { query: debouncedQuery });
-
-        if (error) throw error;
-
-        setResults(data || []);
+        const response = await fetch(`/api/services?q=${encodeURIComponent(debouncedQuery)}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch services');
+        }
+        const data = await response.json();
+        setResults(data);
       } catch (err: any) {
         console.error('Search error:', err);
         setError('Erreur lors de la recherche: ' + err.message);

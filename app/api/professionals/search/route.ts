@@ -24,7 +24,8 @@ export async function GET(request: Request) {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .ilike('normalized_last_name', `%${normalizedQuery}%`);
+      .ilike('normalized_last_name', `%${normalizedQuery}%`)
+      .not('profession_id', 'is', null);
 
     if (error) {
       console.error('Error searching professionals:', error);

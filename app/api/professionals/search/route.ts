@@ -29,7 +29,9 @@ export async function GET(request: Request) {
           name
         )
       `)
-      .ilike('normalized_last_name', `%${normalizedQuery}%`);
+      .ilike('normalized_last_name', `%${normalizedQuery}%`)
+      .not('profession_id', 'is', null)
+      .eq('user_type', 'professionnel');
 
     if (error) {
       console.error('Error searching professionals:', error);

@@ -70,6 +70,8 @@ export default function ProfessionalProfile() {
   const router = useRouter();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
 
   const [newAddress, setNewAddress] = useState({
     street_address: '',
@@ -384,6 +386,33 @@ export default function ProfessionalProfile() {
     }
   };
 
+  const handleDeleteProfile = async () => {
+    if (deleteConfirmationText !== 'suppression') {
+      setError('Veuillez taper "suppression" pour confirmer la suppression');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/profiles/delete', {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete profile');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        router.push('/');
+      } else {
+        throw new Error(data.error || 'Failed to delete profile');
+      }
+    } catch (err) {
+      console.error('Error deleting profile:', err);
+      setError('Erreur lors de la suppression du profil');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -410,9 +439,57 @@ export default function ProfessionalProfile() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white shadow sm:rounded-lg">
           <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900 mb-6">
-              Mon profil professionnel
-            </h3>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg leading-6 font-medium text-gray-900">
+                Mon profil professionnel
+              </h3>
+              <button
+                onClick={() => setIsDeleteModalOpen(true)}
+                className="text-red-600 hover:text-red-800"
+              >
+                Supprimer mon compte
+              </button>
+            </div>
+
+            {/* Delete Confirmation Modal */}
+            {isDeleteModalOpen && (
+              <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg p-6 max-w-md w-full">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    Confirmer la suppression
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.
+                    Tapez "suppression" pour confirmer.
+                  </p>
+                  <input
+                    type="text"
+                    value={deleteConfirmationText}
+                    onChange={(e) => setDeleteConfirmationText(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md mb-4"
+                    placeholder="Tapez 'suppression'"
+                  />
+                  <div className="flex justify-end space-x-3">
+                    <button
+                      onClick={() => {
+                        setIsDeleteModalOpen(false);
+                        setDeleteConfirmationText('');
+                        setError('');
+                      }}
+                      className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      onClick={handleDeleteProfile}
+                      className="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700"
+                    >
+                      Supprimer
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded mb-4">
